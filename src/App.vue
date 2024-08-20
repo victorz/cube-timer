@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useIndexedDB } from './db/useIndexedDB'
 
 const started = ref(false)
 const finished = ref(false)
 const startTime = ref(0)
 const currentTime = ref(0)
 const listenerRef = ref()
+
+const { addData } = useIndexedDB('times', 'times')
 
 onMounted(() => {
   resetTime()
@@ -21,6 +24,7 @@ onMounted(() => {
           startTimer()
         } else if (!finished.value) {
           stopTimer()
+          addData('times', { date: new Date().toISOString(), time: time.value })
         }
     }
   })
