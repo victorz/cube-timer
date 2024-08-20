@@ -1,39 +1,44 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const started = ref(false)
-const currentTime = ref(0)
+const finished = ref(false)
 const startTime = ref(0)
-const accumulatedTime = ref(0)
+const currentTime = ref(0)
+const listenerRef = ref()
 
 onMounted(() => {
   resetTime()
 
-  document.addEventListener('keydown', (event: KeyboardEvent) => {
+  listenerRef.value = document.addEventListener('keydown', (event: KeyboardEvent) => {
     switch (event.key) {
       case 'Backspace':
-        started.value = false
-
         resetTime()
+
         return
       case ' ':
-        started.value = !started.value
-
-        if (started.value) {
-          restartTimer()
-          updateTime()
-        } else {
-          pauseTimer()
+        if (!started.value && !finished.value) {
+          startTimer()
+        } else if (!finished.value) {
+          stopTimer()
         }
     }
   })
 })
 
-const pauseTimer = () => {
-  accumulatedTime.value += partTime.value
-  startTime.value = currentTime.value
-}
+onUnmounted(() => {
+  document.removeEventListener('keydown', listenerRef.value)
+})
 
+const startTimer = () => {
+  started.value = true
+  startTime.value = getNewTime()
+  updateTime()
+}
+const stopTimer = () => {
+  started.value = false
+  finished.value = true
+}
 const updateTime = () => {
   requestAnimationFrame(() => {
     updateStopwatch()
@@ -43,28 +48,21 @@ const updateTime = () => {
     }
   })
 }
-
 const resetTime = () => {
   requestAnimationFrame(() => {
     started.value = false
+    finished.value = false
+  })
+  requestAnimationFrame(() => {
     startTime.value = 0
     currentTime.value = 0
-    accumulatedTime.value = 0
   })
 }
-
 const updateStopwatch = () => {
   currentTime.value = getNewTime()
 }
-
-const restartTimer = () => {
-  startTime.value = getNewTime()
-}
-
 const getNewTime = () => Date.now()
-
-const partTime = computed(() => currentTime.value - startTime.value)
-const time = computed(() => partTime.value + accumulatedTime.value)
+const time = computed(() => currentTime.value - startTime.value)
 const formattedTime = computed(
   () =>
     `${Math.floor(time.value / 60_000)
@@ -75,7 +73,7 @@ const formattedTime = computed(
 
 <template>
   <main>
-    Press <kbd>space</kbd> to toggle the timer. <kbd>Backspace</kbd> to reset.
+    Press <kbd>space</kbd> to start and stop the timer. <kbd>Backspace</kbd> to reset.
 
     <h1 class="time">{{ formattedTime }}</h1>
   </main>
